@@ -2,7 +2,7 @@
 .section .rodata
     # printf formats
     f_invalid:  .string "invalid option!\n"
-    f_invalid2:  .string "invalid input!\n"
+    f_invalid2: .string "invalid input!\n"
     f_50:       .string "first pstring length: %d, second pstring length: %d\n"
     f_52:       .string "old char: %c, new char: %c, first string: %s, second string: %s\n"
     f_53_54:    .string "length: %d, string: %s\n"
@@ -71,8 +71,14 @@ main:
     call    scanf
     
     ####################### TEST ########################
-    movq    %r13, %rdi
-    call    swapCase
+    movq    %r12, %rdi
+    movq    %r13, %rsi
+    movq    $0, %rdx
+    movq    $4, %rcx
+    call    pstrijcmp
+    movq    %rax, %rsi
+    movq    $f_55, %rdi
+    call    printf
     
     movq    %r12, %rdi
     movq    %r13, %rsi
@@ -300,9 +306,66 @@ swapCase:
     jne     .L15            # if != -> loop
     ret                     # done
     
-
-
-
-
+# pstrijcmp function. returns: 0 if pstr1 = pstr2, 1 if
+# pstr1 > pstr2, -1 if pstr1 < pstr2, -2 for invalid input.
+# pstr1 in %rdi, pstr2 in %rsi, i in %rdx, j in %rcx.
+    .globl  pstrijcmp
+    .type   pstrijcmp, @function
+pstrijcmp:
+    ### initialize ###
+    incq    %rdi
+    incq    %rsi
+    addq    %rdx, %rdi      # %rdi = pstr1[i]
+    addq    %rdx, %rsi      # %rsi = pstr2[i]
+    xorq    %r8, %r8
+    movb    (%rdi), %r8b    # %r8 = pstr1 length
+    xorq    %r9, %r9
+    movb    (%rsi), %r9b    # %r9 = pstr2 length
+    xorq    %r10, %r10      # for the loop
     
+    ### input check ###
+    cmpq    $0, %rdx
+    jl      .L21            # if i < 0 -> invalid
+    cmpq    %rdx, %rcx      # cmp j:i
+    jl      .L21            # if j < i -> invalid
+    cmpq    %rcx, %r8       # cmp (pstr1 length):j
+    jl      .L21            # if length < j -> invalid
+    cmpq    %rcx, %r9       # cmp (pstr2 length):j
+    jl      .L21            # if length < j -> invalid
+    
+    ### while loop ###
+    jmp     .L20            # jump to condition
+.L19:                       # the loop
+    movb    (%rdi), %r10b   # %r10 = pstr1[i] char value
+    cmpb    (%rsi), %r10b   # cmp pstr1:pstr2 char value
+    jl      .L23            # if < -> pstr1 > pstr2 (lex)
+    cmpb    (%rsi), %r10b   # cmp pstr1:pstr2 char value
+    jg      .L22            # if > -> pstr1 < pstr2 (lex)
+    incq    %rdi            # %rdi = pstr1[i+1]
+    incq    %rsi            # %rsi = pstr2[i+1]
+    incq    %rdx            # i++
+
+.L20:                       # while condition
+    cmpq    %rdx, %rcx      # cmp j:i
+    jne     .L19            # if j != i -> loop
+        # if loop ended then pstrings are equal
+    xorq    %rax, %rax
+    jmp     .L24            # ret 0
+    
+.L23:                       # pstr1 > pstr2 (lexicographic)
+    movq    $1, %rax
+    jmp     .L24            # ret 1
+
+.L22:                       # pstr1 < pstr2 (lexicographic)
+    movq    $-1, %rax
+    jmp     .L24            # ret -1
+
+.L21:                       # invalid input
+    movq    $f_invalid2, %rdi
+    xorq    %rax, %rax
+    call    printf
+    movq    $-2, %rax       # ret -2
+    
+.L24:
+    ret   
     
