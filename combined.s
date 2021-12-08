@@ -71,11 +71,6 @@ main:
     xorq    %rax, %rax
     call    scanf
     
-    ####################### TEST ########################
-
-
-    #####################################################
-    
     ### go to func_select ###
     xorq    %rdx, %rdx
     movb    (%r14), %dl
@@ -378,9 +373,9 @@ pstrijcpy:
     cmpq    %rdx, %rcx      # cmp j:i
     jl      .L11            # if j < i -> invalid
     cmpq    %rcx, %r8       # cmp (dst length):j
-    jl      .L11            # if length < j -> invalid
+    jle      .L11           # if length < j -> invalid
     cmpq    %rcx, %r9       # cmp (src length):j
-    jl      .L11            # if length < j -> invalid
+    jle      .L11           # if length < j -> invalid
     
     movq    %rdi, %r10      # save dst loc for return value
     leaq    1(%rdi, %rdx), %rdi      # %rdi = dst[i]
@@ -452,14 +447,16 @@ swapCase:
     .type   pstrijcmp, @function
 pstrijcmp:
     ### initialize ###
-    incq    %rdi
-    incq    %rsi
-    addq    %rdx, %rdi      # %rdi = pstr1[i]
-    addq    %rdx, %rsi      # %rsi = pstr2[i]
     xorq    %r8, %r8
     movb    (%rdi), %r8b    # %r8 = pstr1 length
     xorq    %r9, %r9
     movb    (%rsi), %r9b    # %r9 = pstr2 length
+    decq    %r8
+    decq    %r9             # dec lengths for input check
+    incq    %rdi
+    incq    %rsi
+    addq    %rdx, %rdi      # %rdi = pstr1[i]
+    addq    %rdx, %rsi      # %rsi = pstr2[i]
     xorq    %r10, %r10      # for the loop
     
     ### input check ###
@@ -473,20 +470,19 @@ pstrijcmp:
     jl      .L21            # if length < j -> invalid
     
     ### while loop ###
-    jmp     .L20            # jump to condition
 .L19:                       # the loop
     movb    (%rdi), %r10b   # %r10 = pstr1[i] char value
     cmpb    (%rsi), %r10b   # cmp pstr1:pstr2 char value
-    jl      .L23            # if < -> pstr1 > pstr2 (lex)
+    jg      .L23            # if > -> pstr1 > pstr2 (lex)
     cmpb    (%rsi), %r10b   # cmp pstr1:pstr2 char value
-    jg      .L22            # if > -> pstr1 < pstr2 (lex)
+    jl      .L22            # if < -> pstr1 < pstr2 (lex)
     incq    %rdi            # %rdi = pstr1[i+1]
     incq    %rsi            # %rsi = pstr2[i+1]
     incq    %rdx            # i++
 
 .L20:                       # while condition
     cmpq    %rdx, %rcx      # cmp j:i
-    jne     .L19            # if j != i -> loop
+    jge     .L19            # if j >= i -> loop
         # if loop ended then pstrings are equal
     xorq    %rax, %rax
     jmp     .L24            # ret 0
@@ -507,4 +503,3 @@ pstrijcmp:
     
 .L24:
     ret   
-    
