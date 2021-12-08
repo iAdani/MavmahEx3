@@ -5,10 +5,11 @@
     f_invalid2: .string "invalid input!\n"
     f_50:       .string "first pstring length: %d, second pstring length: %d\n"
     f_52:       .string "old char: %c, new char: %c, first string: %s, second string: %s\n"
-    f_53_54:    .string "length: %d, string: %s\n"
+    f_53:       .string "length: %d, string: %s\n"
     f_55:       .string "compare result: %d\n"
     f_scans:    .string " %s"
     f_scand:    .string " %d"
+    f_scanc:    .string " %c"
     
     # jmp table
     .align 8
@@ -71,50 +72,7 @@ main:
     call    scanf
     
     ####################### TEST ########################
-    movq    %r12, %rdi
-    movq    %r13, %rsi
-    movq    $0, %rdx
-    movq    $4, %rcx
-    call    pstrijcmp
-    movq    %rax, %rsi
-    movq    $f_55, %rdi
-    call    printf
-    
-    movq    %r12, %rdi
-    movq    %r13, %rsi
-    movq    $5, %rdx
-    movq    $5, %rcx
-    call    pstrijcpy
-    
-    movq    %r12, %rdi
-    call    pstrlen
-    movq    %rax, %rsi
-    movq    $f_53_54, %rdi
-    movq    %r12, %rdx
-    incq    %rdx
-    xorq    %rax, %rax
-    call    printf
-    
-    movq    %r12, %rdi
-    xorq    %rsi, %rsi
-    xorq    %rdx, %rdx
-    movq    $1, %rsi
-    movq    $120, %rdx
-    call    replaceChar
-    xorq    %rsi, %rsi
-    movb    (%r12), %sil
-    movq    $f_53_54, %rdi
-    leaq    1(%r12), %rdx
-    xorq    %rax, %rax
-    call    printf
-    
-    movq    %r13, %rdi
-    call    pstrlen
-    movq    %rax, %rsi
-    movq    $f_53_54, %rdi
-    leaq    1(%r13), %rdx
-    xorq    %rax, %rax
-    call    printf
+
 
     #####################################################
     
@@ -141,10 +99,12 @@ func_select:
     ### initialize ###
     pushq   %rbp
     movq    %rsp, %rbp
+    pushq   %r14
+    pushq   %r15
     xorq    %r10, %r10
     movq    %rdx, %r10      # command
-    movq    %rsi, %r9       # 2st pstring
-    movq    %rdi, %r8       # 1st pstring
+    movq    %rsi, %r15      # %r15 = 2st pstring
+    movq    %rdi, %r14      # %r14 = 1st pstring
     
     ### start of switch-case ###
     subq    $50, %r10
@@ -155,23 +115,200 @@ func_select:
     jmp     *.L1(,%r10,8)   # 50 <= x <= 60 -> table
     
 .L4:                        # for 50 or 60
-    #DO THINGS
+    movq    %r14, %rdi
+    call    pstrlen
+    movq    %rax, %rsi      # 1st pstring length
+    movq    %r15, %rdi
+    call    pstrlen
+    movq    %rax, %rdx      # 2nd pstring length
+    movq    $f_50, %rdi
+    xorq    %rax, %rax
+    call    printf
     jmp     .L3
   
 .L5:                        # for 52
-    #DO THINGS
+    ### initialize ###
+    pushq   %r13
+    pushq   %r12
+    pushq   %rbx
+    
+    ### scanning ###
+    leaq    -8(%rsp), %rbx  # scan address
+    subq    $8, %rsp        # alocate for scanf
+        # scanning old char
+    movq    $f_scanc, %rdi
+    movq    %rbx, %rsi
+    xorq    %rax, %rax
+    call    scanf
+    xorq    %r12, %r12
+    movb    (%rbx), %r12b   # %r12 = old char
+        # scanning new char
+    movq    $f_scanc, %rdi
+    movq    %rbx, %rsi
+    xorq    %rax, %rax
+    call    scanf
+    xorq    %r13, %r13
+    movb    (%rbx), %r13b   # %r13 = new char
+    
+    ### replacing chars ###
+        # first pstring
+    movq    %r14, %rdi
+    movq    %r12, %rsi
+    movq    %r13, %rdx
+    call    replaceChar
+        # second pstring
+    movq    %r15, %rdi
+    movq    %r12, %rsi
+    movq    %r13, %rdx
+    call    replaceChar
+    
+    ### printing ###
+    movq    $f_52, %rdi
+    movq    %r12, %rsi      # old char
+    movq    %r13, %rdx      # new char
+    movq    %r14, %rcx
+    incq    %rcx            # 1st pstring
+    movq    %r15, %r8
+    incq    %r8             # 2nd pstring
+    xorq    %rax, %rax
+    call    printf
+    
+    ### ending ###
+    addq    $8, %rsp
+    popq    %rbx
+    popq    %r12
+    popq    %r13
     jmp     .L3
     
 .L6:                        # for 53
-    #DO THINGS
+    ### initialize ###
+    pushq   %r13
+    pushq   %r12
+    pushq   %rbx
+    
+    ### scanning ###
+    leaq    -8(%rsp), %rbx  # scan address
+    subq    $8, %rsp        # alocate for scanf
+        # scanning i
+    movq    $f_scand, %rdi
+    movq    %rbx, %rsi
+    xorq    %rax, %rax
+    call    scanf
+    xorq    %r12, %r12
+    movb    (%rbx), %r12b   # %r12 = i
+        # scanning j
+    movq    $f_scand, %rdi
+    movq    %rbx, %rsi
+    xorq    %rax, %rax
+    call    scanf
+    xorq    %r13, %r13
+    movb    (%rbx), %r13b   # %r13 = j
+    
+    ### copying ###
+    movq    %r13, %rcx      # j
+    movq    %r12, %rdx      # i
+    movq    %r15, %rsi      # 2nd pstring
+    movq    %r14, %rdi      # 1st pstring
+    call    pstrijcpy
+    
+    ### printing ###
+        # first pstring
+    movq    %r14, %rdi
+    call    pstrlen
+    movq    %rax, %rsi      # length
+    movq    %r14, %rdx
+    incq    %rdx            # pstring
+    movq    $f_53, %rdi
+    xorq    %rax, %rax
+    call    printf
+        # second pstring
+    movq    %r15, %rdi
+    call    pstrlen
+    movq    %rax, %rsi      # length
+    movq    %r15, %rdx
+    incq    %rdx            # pstring
+    movq    $f_53, %rdi
+    xorq    %rax, %rax
+    call    printf
+    
+    ### ending ###
+    addq    $8, %rsp
+    popq    %rbx
+    popq    %r12
+    popq    %r13
     jmp     .L3
     
 .L7:                        # for 54
-    #DO THINGS
+    ### swapping ###
+    movq    %r14, %rdi
+    call    swapCase
+    movq    %r15, %rdi
+    call    swapCase
+
+    ### printing ###
+        # first pstring
+    movq    %r14, %rdi
+    call    pstrlen
+    movq    %rax, %rsi      # length
+    movq    %r14, %rdx
+    incq    %rdx            # pstring
+    movq    $f_53, %rdi
+    xorq    %rax, %rax
+    call    printf
+        # second pstring
+    movq    %r15, %rdi
+    call    pstrlen
+    movq    %rax, %rsi      # length
+    movq    %r15, %rdx
+    incq    %rdx            # pstring
+    movq    $f_53, %rdi
+    xorq    %rax, %rax
+    call    printf
+    
     jmp     .L3
     
 .L8:                        # for 55
-    #DO THINGS
+    ### initialize ###
+    pushq   %r13
+    pushq   %r12
+    pushq   %rbx
+    
+    ### scanning ###
+    leaq    -8(%rsp), %rbx  # scan address
+    subq    $8, %rsp        # alocate for scanf
+        # scanning i
+    movq    $f_scand, %rdi
+    movq    %rbx, %rsi
+    xorq    %rax, %rax
+    call    scanf
+    xorq    %r12, %r12
+    movb    (%rbx), %r12b   # %r12 = i
+        # scanning j
+    movq    $f_scand, %rdi
+    movq    %rbx, %rsi
+    xorq    %rax, %rax
+    call    scanf
+    xorq    %r13, %r13
+    movb    (%rbx), %r13b   # %r13 = j
+    
+    ### comparing ###
+    movq    %r13, %rcx      # j
+    movq    %r12, %rdx      # i
+    movq    %r15, %rsi      # 2nd pstring
+    movq    %r14, %rdi      # 1st pstring
+    call    pstrijcmp
+    
+    ### printing ###
+    movq    %rax, %rsi
+    movq    $f_55, %rdi
+    xorq    %rax, %rax
+    call    printf
+    
+    ### ending ###
+    addq    $8, %rsp
+    popq    %rbx
+    popq    %r12
+    popq    %r13
     jmp     .L3
       
           
@@ -181,6 +318,8 @@ func_select:
     call    printf
     
 .L3:                        # end of switch-case
+    popq    %r15
+    popq    %r14
     movq    %rbp, %rsp
     popq    %rbp
     ret
